@@ -25,3 +25,15 @@ class Config:
     DATABASE_URL = os.getenv("DATABASE_URL")
     SECRET_KEY = os.getenv("SECRET_KEY")  # top secret: not in REQUIRED_CONFIGS
     ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440))
+    EMAIL_CONFIG = {
+        "provider": os.getenv("EMAIL_PROVIDER", "smtp"),
+        "smtp": {
+            "username": os.getenv("SMTP_USERNAME"),
+            "password": os.getenv("SMTP_PASSWORD"),
+            "server": os.getenv("SMTP_SERVER"),
+            "port": int(os.getenv("SMTP_PORT", 587)),
+        },
+        "sendgrid": {
+            "api_key": os.getenv("SENDGRID_API_KEY"),
+        }
+    }

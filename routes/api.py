@@ -60,3 +60,41 @@ def change_password(data: schema.ChangePassword, current_user: User = Depends(ge
 def health_check():
     return {"status": "ok", "message": "Service is healthy"}
 
+
+@router.post("/magic-link/request")
+def request_magic_link(data: schema.MagicLinkRequest, db: Session = Depends(get_db)):
+    user = User.get_by_email(db, data.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not registered")
+    import secrets
+    token = secrets.token_urlsafe(32)
+    expires = datetime.utcnow() + timedelta(minutes=15)
+
+    # ✅ Use user.id now
+    from db.models import MagicLinkToken
+    MagicLinkToken.create(db, user_id=user.id, token=token, expires_at=expires)
+
+    magic_link_url = f"http://localhost:8000/api/magic-link/verify?token={token}"
+
+    from email.magic_link import send_magic_link_email
+    send_magic_link_email(user.email, magic_link_url)
+    log.info(f"Magic link sent to {user.email}")
+    return {"message": "Magic link sent to your email"}
+
+
+@router.get("/magic-link/verify")
+def verify_magic_link(token: str, db: Session = Depends(get_db)):
+    from db.models import MagicLinkToken
+    link = MagicLinkToken.get_valid_token(db, token)
+    if not link:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = db.query(User).filter(User.id == link.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    session_token = str(uuid4())
+    SessionToken.create_token(db, session_token, user.email, datetime.utcnow() + timedelta(days=1))
+    log.info(f"Magic link login for user ID {user.id} ({user.email})")
+    return {"access_token": session_token, "token_type": "bearer"}
+

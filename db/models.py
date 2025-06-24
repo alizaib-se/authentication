@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Integer, Column, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship, Session
 from datetime import datetime
 
@@ -7,6 +7,7 @@ from .database import Base
 class User(Base):
     __tablename__ = "users"
 
+    id = Column(Integer, primary_key=True, index=True)
     email = Column(String, primary_key=True, index=True)
     hashed_password = Column(String, nullable=False)
     name = Column(String, default="")
@@ -60,16 +61,21 @@ class SessionToken(Base):
         db.commit()
         return session
 
+
+from sqlalchemy import Column, String, DateTime, ForeignKey, Integer
+from db.database import Base
+from datetime import datetime
+
 class MagicLinkToken(Base):
     __tablename__ = "magic_link_tokens"
 
     token = Column(String, primary_key=True, index=True)
-    email = Column(String, ForeignKey("users.email"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     expires_at = Column(DateTime, nullable=False)
 
     @classmethod
-    def create(cls, db, email: str, token: str, expires_at: datetime):
-        link = cls(token=token, email=email, expires_at=expires_at)
+    def create(cls, db, user_id: int, token: str, expires_at: datetime):
+        link = cls(token=token, user_id=user_id, expires_at=expires_at)
         db.add(link)
         db.commit()
         return link

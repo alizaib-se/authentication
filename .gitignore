@@ -13,3 +13,6 @@ venv/
 
 # Logs
 *.log
+.env
+.idea
+
