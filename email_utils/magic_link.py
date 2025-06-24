@@ -1,5 +1,5 @@
-from email.sender_factory import get_email_sender
-from email.template_registry import get_email_body
+from email_utils.sender_factory import get_email_sender
+from email_utils.template_registry import get_email_body
 
 def send_magic_link_email(to_email: str, link: str):
     subject = "Your Magic Login Link"

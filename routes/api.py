@@ -8,6 +8,9 @@ from auth import auth_utils
 from common.logger import setup_logger
 from datetime import datetime, timedelta
 from uuid import uuid4
+from random import randint
+from db.models import MagicCodeToken
+
 
 router = APIRouter()
 log = setup_logger(__name__)
@@ -61,40 +64,32 @@ def health_check():
     return {"status": "ok", "message": "Service is healthy"}
 
 
-@router.post("/magic-link/request")
-def request_magic_link(data: schema.MagicLinkRequest, db: Session = Depends(get_db)):
+@router.post("/request-magic-code")
+def request_magic_code(data: schema.RequestMagicCode, db: Session = Depends(get_db)):
     user = User.get_by_email(db, data.email)
-    if not user:
-        raise HTTPException(status_code=404, detail="Email not registered")
-    import secrets
-    token = secrets.token_urlsafe(32)
-    expires = datetime.utcnow() + timedelta(minutes=15)
-
-    # ✅ Use user.id now
-    from db.models import MagicLinkToken
-    MagicLinkToken.create(db, user_id=user.id, token=token, expires_at=expires)
-
-    magic_link_url = f"http://localhost:8000/api/magic-link/verify?token={token}"
-
-    from email.magic_link import send_magic_link_email
-    send_magic_link_email(user.email, magic_link_url)
-    log.info(f"Magic link sent to {user.email}")
-    return {"message": "Magic link sent to your email"}
-
-
-@router.get("/magic-link/verify")
-def verify_magic_link(token: str, db: Session = Depends(get_db)):
-    from db.models import MagicLinkToken
-    link = MagicLinkToken.get_valid_token(db, token)
-    if not link:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-
-    user = db.query(User).filter(User.id == link.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    session_token = str(uuid4())
-    SessionToken.create_token(db, session_token, user.email, datetime.utcnow() + timedelta(days=1))
-    log.info(f"Magic link login for user ID {user.id} ({user.email})")
-    return {"access_token": session_token, "token_type": "bearer"}
+    code = f"{randint(100000, 999999)}"
+    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    MagicCodeToken.create(db, user.id, code, expires_at)
 
+    subject = "Your Login Code"
+    from email_utils.template_registry import get_email_body
+    from email_utils.sender_factory import get_email_sender
+    body = get_email_body("magic_code", code=code)
+    get_email_sender().send_email(user.email, subject, body)
+
+    return {"message": "Magic code sent"}
+
+
+@router.post("/verify-magic-code")
+def verify_magic_code(data: schema.VerifyMagicCode, db: Session = Depends(get_db)):
+    user = MagicCodeToken.verify(db, data.code)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid or expired code")
+
+    token = str(uuid4())
+    expires = datetime.utcnow() + timedelta(days=1)
+    SessionToken.create_token(db, token, user.email, expires)
+    return {"access_token": token, "token_type": "bearer"}

@@ -12,7 +12,7 @@ REQUIRED_CONFIGS = [
     "ACCESS_TOKEN_EXPIRE_MINUTES"
 ]
 
-# Check missing configs
+# Check for missing required configs
 missing = [key for key in REQUIRED_CONFIGS if not os.getenv(key)]
 
 if missing:
@@ -21,10 +21,12 @@ if missing:
         "Please check your .env file."
     )
 
+# Config class for structured access
 class Config:
     DATABASE_URL = os.getenv("DATABASE_URL")
-    SECRET_KEY = os.getenv("SECRET_KEY")  # top secret: not in REQUIRED_CONFIGS
+    SECRET_KEY = os.getenv("SECRET_KEY")  # Top secret, not in REQUIRED_CONFIGS
     ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440))
+
     EMAIL_CONFIG = {
         "provider": os.getenv("EMAIL_PROVIDER", "smtp"),
         "smtp": {

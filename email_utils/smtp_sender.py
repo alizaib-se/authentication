@@ -1,11 +1,11 @@
 import smtplib
 from email.mime.text import MIMEText
-from config import EMAIL_CONFIG
+from config import Config
 from .base import EmailSender
 
 class SMTPSender(EmailSender):
     def send_email(self, to_email: str, subject: str, body: str) -> None:
-        smtp_conf = EMAIL_CONFIG["smtp"]
+        smtp_conf = Config.EMAIL_CONFIG["smtp"]
         msg = MIMEText(body, "html")
         msg["Subject"] = subject
         msg["From"] = smtp_conf["username"]

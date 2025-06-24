@@ -4,8 +4,8 @@ import os
 env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates")))
 
 TEMPLATES = {
-    "magic_link": "magic_link.html",
-    "verification": "verification.html"
+    "verification": "verification.html",
+    "magic_code": "magic_code.html"
 }
 
 def get_email_body(identifier: str, **kwargs) -> str:

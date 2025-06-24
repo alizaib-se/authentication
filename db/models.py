@@ -7,8 +7,8 @@ from .database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    email = Column(String, unique=True, index=True, nullable=False)  # ✅ Make it unique, not primary key
     hashed_password = Column(String, nullable=False)
     name = Column(String, default="")
     avatar = Column(String, default="")
@@ -66,23 +66,30 @@ from sqlalchemy import Column, String, DateTime, ForeignKey, Integer
 from db.database import Base
 from datetime import datetime
 
-class MagicLinkToken(Base):
-    __tablename__ = "magic_link_tokens"
+class MagicCodeToken(Base):
+    __tablename__ = "magic_code_tokens"
 
-    token = Column(String, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    code = Column(String(6), index=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
+    used = Column(Boolean, default=False)
 
-    @classmethod
-    def create(cls, db, user_id: int, token: str, expires_at: datetime):
-        link = cls(token=token, user_id=user_id, expires_at=expires_at)
-        db.add(link)
+    user = relationship("User")
+
+    @staticmethod
+    def create(db: Session, user_id: int, code: str, expires_at: datetime):
+        token = MagicCodeToken(user_id=user_id, code=code, expires_at=expires_at)
+        db.add(token)
         db.commit()
-        return link
+        db.refresh(token)
+        return token
 
-    @classmethod
-    def get_valid_token(cls, db, token: str):
-        link = db.query(cls).filter(cls.token == token).first()
-        if link and link.expires_at > datetime.utcnow():
-            return link
+    @staticmethod
+    def verify(db: Session, code: str):
+        token = db.query(MagicCodeToken).filter_by(code=code, used=False).first()
+        if token and token.expires_at > datetime.utcnow():
+            token.used = True
+            db.commit()
+            return token.user
         return None

@@ -25,5 +25,9 @@ class ChangePassword(BaseModel):
     current_password: str
     new_password: str
 
-class MagicLinkRequest(BaseModel):
+# routes/schemas.py
+class RequestMagicCode(BaseModel):
     email: EmailStr
+
+class VerifyMagicCode(BaseModel):
+    code: str

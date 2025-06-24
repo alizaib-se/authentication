@@ -1,6 +1,6 @@
-from config import EMAIL_CONFIG
-from .smtp_sender import SMTPSender
-from .sendgrid_sender import SendGridSender
+from config import Config
+from email_utils.smtp_sender import SMTPSender
+from email_utils.sendgrid_sender import SendGridSender
 
 EMAIL_SENDERS = {
     "smtp": SMTPSender,
@@ -8,7 +8,7 @@ EMAIL_SENDERS = {
 }
 
 def get_email_sender():
-    provider = EMAIL_CONFIG["provider"]
+    provider = Config.EMAIL_CONFIG["provider"]
     sender_class = EMAIL_SENDERS.get(provider)
     if not sender_class:
         raise ValueError(f"Unsupported email provider: {provider}")
